@@ -1,5 +1,5 @@
 <template>
-  <div class="card" v-for="(item, key) in arr" :key={key} style="width: 800px">
+  <div class="card" v-for="(item, key) in arr" :key={key} >
     <div class="card-body post mb-1" @click="handleClick(offset + key)">{{ item.title }}</div>
   </div>
 
@@ -19,62 +19,59 @@
 </template>
 
 <script>
+import { ref, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from "axios"
 export default {
-  name: "PostsPage",
-  data() {
+  setup() {
+    const postArr = ref([])
+    const offset = ref(0)
+    const page = ref(5)
+
+    const router = useRouter()
+
+    onMounted(() => {
+      axios.get('https://jsonplaceholder.typicode.com/posts')
+          .then(res => {
+            postArr.value = res.data
+          })
+          .catch(err => {
+            console.error(err)
+          })
+    })
+
+    // Array for current five posts to display on screen (during pagination)
+    const arr = computed(() => {
+      return postArr.value.filter((el, index) => ((index >= offset.value) && (index < offset.value + page.value)))
+    })
+
+    function handleClick(ind) {
+      router.push({name: 'post', params: {id: postArr.value[ind].id}})
+    }
+
+    function goNext() {
+      offset.value = ((offset.value + page.value) < postArr.value.length)? (offset.value + page.value): offset.value
+    }
+
+    function goPrevious() {
+      offset.value = ((offset.value - page.value) >= 0)? (offset.value - page.value): offset.value
+    }
+
+    function goPage(n) {
+
+      offset.value = ((offset.value + (n-1) * page.value) < postArr.value.length)? (offset.value + (n-1) * page.value): offset.value
+    }
+
     return {
-      postArr: [],
-      offset: 0,
-      page: 5
+      postArr,
+      offset,
+      page,
+      arr,
+      handleClick,
+      goNext,
+      goPrevious,
+      goPage
     }
-  },
-
-  computed: {
-    arr() {           // Array for current five posts to display on screen (during pagination)
-      const {postArr, offset, page} = this
-      return postArr.filter((el, index) => ((index >= offset) && (index < offset + page)))
-    }
-  },
-
-  mounted () {
-    axios.get('https://jsonplaceholder.typicode.com/posts')
-        .then(res => {
-            this.postArr = res.data
-       })
-        .catch(err => {
-          console.error(err)
-        })
-  },
-
-  methods: {
-    handleClick(ind) {
-      this.$router.push({name: 'post', params: {id: this.postArr[ind].id}})
-    },
-
-    goNext() {
-      const {postArr, offset, page} = this
-      this.offset = ((offset + page) < postArr.length)? (offset + page): offset
-      },
-
-    goPrevious() {
-      const {offset, page} = this
-      this.offset = ((offset - page) >= 0)? (offset - page): offset
-    },
-
-    goPage(n) {
-      const {postArr, offset, page} = this
-      this.offset = ((offset + (n-1) * page) < postArr.length)? (offset + (n-1) * page): offset
-    },
   }
 }
 </script>
-
-<style scoped>
-  .post {
-    background-color: lightgrey;
-  }
-  .post:hover {
-    background-color: darkgrey;
-  }
-</style>

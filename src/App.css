@@ -1,0 +1,20 @@
+body {
+    width: 100%;
+    max-width: 800px;
+}
+
+.main-bg {
+    background-color: orange;
+}
+
+.custom-bg {
+    background-color: lightsalmon;
+}
+
+.post {
+    background-color: lightgrey;
+}
+
+.post:hover {
+    background-color: darkgrey;
+}

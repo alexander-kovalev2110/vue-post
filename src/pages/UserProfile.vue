@@ -11,27 +11,33 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
 import axios from 'axios'
 export default {
-  name: "UserProfile",
-  data() {
+  setup() {
+    const userId = ref(4)
+    const id = ref(null)
+    const name = ref('')
+    const email = ref('')
+
+    onMounted(() => {
+      axios.get(`https://jsonplaceholder.typicode.com/users/${userId.value}`)
+          .then(res => {
+            const data = res.data
+            id.value = data.id
+            name.value = data.name
+            email.value = data.email
+          })
+          .catch(err => {
+            console.error(err)
+          })
+    })
+
     return {
-      id: null,
-      name: '',
-      email: ''
+      id,
+      name,
+      email
     }
-  },
-  mounted () {
-    axios.get('https://jsonplaceholder.typicode.com/users/4')
-    .then(res => {
-      const data = res.data
-      this.id = data.id
-      this.name = data.name
-      this.email = data.email
-    })
-    .catch(err => {
-      console.error(err)
-    })
   }
 }
 </script>

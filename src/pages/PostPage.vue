@@ -1,10 +1,10 @@
 <template>
-  <div style="width: 800px">
+  <div>
     <nav class="navbar navbar-expand-lg navbar-light mb-1 custom-bg">
       <div class="container-fluid">
         <span class="navbar-brand mb-0 h1">Post</span>
-        <div class="navbar-nav">
-          <v-btn class="btn btn-sm btn-outline-primary me-3" @click="addComment">Add Comment</v-btn>
+        <div class="px-3 py-2">
+          <button class="btn btn-sm btn-outline-primary" @click="addComment">Add Comment</button>
         </div>
       </div>
     </nav>
@@ -23,25 +23,25 @@
       </div>
 
       <div class="px-3 py-2">
-        <v-btn class="btn btn-sm btn-outline-primary me-3 button-bg" @click="submitComment">Submit</v-btn>
-        <v-btn class="btn btn-sm btn-outline-primary me-3 button-bg" @click="cancelComment">Cancel</v-btn>
+        <button class="btn btn-sm btn-outline-primary me-3 custom-bg-bg" @click="submitComment">Submit</button>
+        <button class="btn btn-sm btn-outline-primary me-3 custom-bg-bg" @click="cancelComment">Cancel</button>
       </div>
     </form>
 
     <!-- Current Post -->
     <div class="card">
       <div class="card-body">
-        <h5 class="card-title">{{ title }}</h5>
+        <h5 class="card-title">{{ postTitle }}</h5>
         <span class="card-text"> <i>{{username}}</i></span>
-        <p class="text-wrap">{{ body }}</p>
+        <p class="text-wrap">{{ postBody }}</p>
       </div>
     </div>
 
     <h3 class="px-3 py-2">Comments</h3>
 
     <!-- List of Post comments -->
-    <div class="card" v-for="(item, key) in comments" :key={key}>
-      <div class="card-body mb-0" >
+    <div class="card mb-1" v-for="(item, key) in comments" :key={key}>
+      <div class="card-body" >
         <h5 class="card-title">{{ item.name }}</h5>
         <span class="card-text"> <i>{{item.email}}</i></span>
         <p class="text-wrap">{{ item.body }}</p>
@@ -51,93 +51,99 @@
 </template>
 
 <script>
+import { ref, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import axios from "axios";
 export default {
-  name: "PostPage",
-  data() {
-    return {
-      postId: 1,
-      title: 'Заголовок поста',
-      userId: 1,
-      username: 'Имя автора',
-      email: '',
-      body: 'Текст поста',
-      comments: [],
-      // Data for adding comment
-      titleVal: '',
-      commentVal: '',
-      display: 'none'       // To hide the comment form
+  setup() {
+    const postId = ref(null)
+    const postTitle = ref('Title')
+    const postUserId = ref(null)
+    const username = ref('')
+    const email = ref('')
+    const postBody = ref('Text')
+    const comments = ref([])
+    // Data for adding comment
+    const titleVal = ref('')
+    const commentVal = ref('')
+    const display = ref('none')       // To hide the comment form
+
+    const route = useRoute()
+
+    onMounted(() => {
+      //  Reading the Current Post
+      axios.get(`https://jsonplaceholder.typicode.com/posts/${route.params.id}`)
+          .then(res => {
+            const {id, title, body, userId} = res.data
+            postId.value = id
+            postTitle.value = title
+            postBody.value = body
+            postUserId.value = userId
+          })
+          .then(() => {             // Reading the author's name
+            axios.get(`https://jsonplaceholder.typicode.com/users/${postUserId.value}`)
+                .then(res => {
+                  username.value = res.data.name
+                  email.value = res.data.email
+                })
+                .then(() => {       // Reading the comments of Current Post
+                  axios.get(`https://jsonplaceholder.typicode.com/comments?postId=${postId.value}`)
+                      .then(res => {
+                        comments.value = res.data
+                      })
+                })
+          })
+          .catch(err => {
+            console.error(err)
+          })
+    })
+
+    function addComment() {
+        display.value = 'block'        // Display the comment form
     }
-  },
 
-  mounted () {
-    // Current Post reading
-    axios.get(`https://jsonplaceholder.typicode.com/posts/${this.postId}`)
-        .then(res => {
-          const {title, body, userId} = res.data
-          this.title = title
-          this.body = body
-          this.userId = userId
-        })
-        .catch(err => {
-          console.error(err)
-        })
-
-    // Reading the author's name
-    axios.get(`https://jsonplaceholder.typicode.com/users/${this.userId}`)
-        .then(res => {
-          this.username = res.data.name
-        })
-        .catch(err => {
-          console.error(err)
-        })
-
-    // Reading the comments of Current Post
-    axios.get(`https://jsonplaceholder.typicode.com/comments?postId=${this.postId}`)
-        .then(res => {
-          this.comments = res.data
-        })
-        .catch(err => {
-          console.error(err)
-        })
-  },
-
-  methods: {
-    addComment() {
-      this.display = 'block'        // Display the comment form
-    },
-
-    async submitComment() {         // Writing the new comment
+    async function submitComment() {   // Writing the new comment
       try {
-        await axios.post(`https://jsonplaceholder.typicode.com/comments`, { data: {
-            postId: this.postId,
-            name: this.titleVal,
-            email: this.email,
-            body: this.commentVal
+        await axios.post(`https://jsonplaceholder.typicode.com/comments`, {
+          data: {
+            postId: postId.value,
+            name: titleVal.value,
+            email: email.value,
+            body: commentVal.value
           }
         })
       } catch (e) {
         console.error(e)
       }
-      this.resetCommentInput()
-      this.display = 'none'
-    },
+      resetCommentInput()
+      display.value = 'none'
+    }
 
-    cancelComment() {
-      this.resetCommentInput()
-      this.display = 'none'
-    },
+    function cancelComment() {
+      resetCommentInput()
+      display.value = 'none'
+    }
 
-    resetCommentInput() {         // Clearing the Form
-      this.titleVal = ''
-      this.commentVal = ''
+    function resetCommentInput() {         // Clearing the Form
+      titleVal.value = ''
+      commentVal.value = ''
+    }
+
+    return {
+      postId,
+      postTitle,
+      postUserId,
+      username,
+      email,
+      postBody,
+      comments,
+      titleVal,
+      commentVal,
+      display,
+      addComment,
+      submitComment,
+      cancelComment
     }
   }
 }
 </script>
-
-<style>
-  .button-bg {
-    background-color: lightsalmon
-  }
-</style>
